@@ -6,6 +6,8 @@ import re
 from colorama import init, Fore, Back, Style
 import glob
 import os
+import streamlit as st
+from io import BytesIO
 
 ###################################### FUNCIÓN DE LIMPIEZA DE COLUMNAS ####################################
 def limpieza_comun(df, fecha):
@@ -110,20 +112,22 @@ def limpieza_comun(df, fecha):
 #agarramos la carpeta de los datos sucios, en este caso se encuentra en la carpeta donde se descargan los datos
 #la cual pues es la carpeta SICOM (tener en cuenta que en caso de hacer uso de streamlit pues la carpeta cambiaría)
 #dónde vamos a abrir todos los archivos que empiecen con la forma 306_ pues son los archivos a limpiar en este código
-carpeta = r"C:\SICOM"
-patron_archivos = os.path.join(carpeta, "306_*.txt")
 
 #agarramos todos los archivos que engloben este patron, porque algunas veces puede haber otros archivos en esta
 #misma carpeta, como el caso de juntar AFR con ZINA, nota: Podríamos bajar el patrón a sólo inicio con
 #306 y que el sistema detecte automáticamente si es ZINA o AFR, al final de cuentas se limpian igual y sólo cambia
 #el nombre de salida del archivo
-archivos = glob.glob(patron_archivos)
+archivos = st.file_uploader(
+    "Sube los archivos 306",
+    type="txt",
+    accept_multiple_files=True
+)
 
 #Para cada archivo dentro de los archivos encontrados
-for file_path in archivos:
+for archivo in archivos:
 
     #primero obtenemos el nombre del archivo, que está pues en el path
-    nombre_archivo = os.path.basename(file_path)
+    nombre_archivo = archivo.name
 
         #Extraer la parte de la fecha (ddmmaa), se encuentra después del primer _ en caso de ser
         #los históricos antiguos, en caso de ser los históricos más recientes, se encuentran a partir del 
@@ -145,7 +149,7 @@ for file_path in archivos:
     #mencionamos el archivo que se anda procesando y además pues lo abrimos, con las columnas extras y todo
     #como el caso de las individuales
     print("Procesando archivo:", nombre_archivo)
-    df = pd.read_csv(file_path, sep=None, encoding='cp1252', engine='python', header = None, 
+    df = pd.read_csv(archivo, sep=None, encoding='cp1252', engine='python', header = None, 
                      names = 
         ['Clave Area', 
         'Area de Venta', 'F. Contable', 'Sesión', 
@@ -269,8 +273,19 @@ for file_path in archivos:
         elif tipo == 'AFR':
                 #La ruta de salida del archivo es la carpeta de BASE LIMPIA FINAL, se guarda tal cual como entró
     #pero en extensión .xlsx
-            ruta = fr"G:\Unidades compartidas\Reportes Limpios\306\AFR\306_AFR_{fecha_sin_slash}_VIVE.xlsx" 
-            df.to_excel(ruta, index=False)
+            nombre_salida = archivo.name.replace(".txt", ".xlsx")
+
+            # crear archivo en memoria
+            output = BytesIO()
+            df.to_excel(output, index=False)
+            output.seek(0)
+
+            st.download_button(
+                label="Descargar archivo limpio",
+                data=output,
+                file_name=nombre_salida,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
             print(Fore.GREEN + f"\n\tLA BASE LIMPIA SE HA CARGADO EN LA CARPETA BASE LIMPIA FINAL para el archivo {tipo, fecha}")
             print(Style.RESET_ALL + '\n')
@@ -305,8 +320,19 @@ for file_path in archivos:
         elif tipo == 'AFR':
                 #La ruta de salida del archivo es la carpeta de 306, se guarda tal cual como entró
     #pero en extensión .xlsx
-            ruta = fr"G:\Unidades compartidas\Reportes Limpios\306\AFR\306_AFR_{fecha_sin_slash}_VIVE.xlsx" 
-            df.to_excel(ruta, index=False)
+            nombre_salida = archivo.name.replace(".txt", ".xlsx")
+
+            # crear archivo en memoria
+            output = BytesIO()
+            df.to_excel(output, index=False)
+            output.seek(0)
+
+            st.download_button(
+                label="Descargar archivo limpio",
+                data=output,
+                file_name=nombre_salida,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
             print(Fore.GREEN + f"\n\tLA BASE LIMPIA SE HA CARGADO EN LA CARPETA BASE LIMPIA FINAL para el archivo {tipo, fecha}")
             print(Style.RESET_ALL + '\n')
@@ -314,5 +340,3 @@ for file_path in archivos:
     #Si ningún dato es de tipo AFR o Zina reconocido
         else:
             print(f"Nombre de archivo no coincide con AFR o ZINA {tipo, fecha}")
-
-
