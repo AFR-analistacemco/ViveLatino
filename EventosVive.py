@@ -1,5 +1,4 @@
 import pandas as pd
-import chardet
 import unicodedata
 from datetime import datetime
 import re
